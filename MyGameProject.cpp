@@ -4,21 +4,65 @@
 #include <vector>
 using namespace std;
 
-class Teapot
+
+struct Color { float r, g, b; };
+
+class Object
 {
 public:
     double xp, yp, zp, size;
-    Teapot(double xp, double yp, double zp, double size)
+    Color color;
+    Object(double xp, double yp, double zp, double size, Color c)
     {
         this->xp = xp;
         this->yp = yp;
         this->zp = zp;
         this->size = size;
+        this->color = c;
     }
+};
+
+class Teapot : public Object
+{
+public:
+    Teapot(double xp, double yp, double zp, double size, Color c) : Object(xp, yp, zp, size, c)
+    {};
+
     void make()
     {
+        glPushMatrix();
         glTranslatef(this->xp, this->yp, this->zp);
+        glColor3f(this->color.r, this->color.g, this->color.b);
         glutSolidTeapot(this->size);
+        glPopMatrix();
+    }
+};
+
+class Cube : public Object
+{
+public:
+    Cube(double xp, double yp, double zp, double size, Color c) : Object(xp, yp, zp, size, c) {};
+    void make()
+    {
+        glPushMatrix();
+        glTranslatef(this->xp, this->yp, this->zp);
+        glColor3f(this->color.r, this->color.g, this->color.b);
+        glutSolidCube(this->size);
+        glPopMatrix();
+    }
+};
+
+class Sphere : public Object
+{
+public:
+    Sphere(double xp, double yp, double zp, double size, Color c) : Object(xp, yp, zp, size, c) {};
+    void make()
+    {
+        glPushMatrix();
+        glTranslatef(this->xp, this->yp, this->zp);
+        glColor3f(this->color.r, this->color.g, this->color.b);
+        glutSolidSphere(this->size, 20, 20);
+        glPopMatrix();
     }
 };
 
@@ -32,12 +76,11 @@ int lastMouseY = 450;
 
 bool firstMouse = true;
 
-double speed = 0.2;
+double speed = 0.05;
 
 double gspeed = 0;
 
-void showInfo();
-void gravity();
+bool keys[256] = { false };
 
 void computeCamera(double& dirX, double& dirY, double& dirZ)
 {
@@ -48,6 +91,78 @@ void computeCamera(double& dirX, double& dirY, double& dirZ)
     dirY = sin(radian_Pitch);
     dirZ = cos(radian_Pitch) * sin(radian_Yaw);
 }
+
+void moveCamera()
+{
+    //int isShift = glutGetModifiers();
+
+    double dirX, dirY, dirZ;
+    computeCamera(dirX, dirY, dirZ);
+
+    double forwardX = dirX;
+    double forwardZ = dirZ;
+
+
+    double rightX = dirZ;
+    double rightZ = -dirX;
+
+    if (keys['w'])
+    {
+        camX += forwardX * speed;
+        camZ += forwardZ * speed;
+    }
+
+    if (keys['s'])
+    {
+        camX -= forwardX * speed;
+        camZ -= forwardZ * speed;
+    }
+
+    if (keys['a'])
+    {
+        camX += rightX * speed;
+        camZ += rightZ * speed;
+    }
+
+    if (keys['d'])
+    {
+        camX -= rightX * speed;
+        camZ -= rightZ * speed;
+    }
+
+    if (keys[32]) camY = 5;
+    if (keys[27]) exit(0);
+    //if (GetAsyncKeyState(VK_SHIFT) & 0x8000) speed = 0.2;
+    //else speed = 0.05;
+
+}
+
+void gravity()
+{
+    gspeed += 0.0005;
+    if (camY > 0)
+    {
+        camY -= gspeed;
+    }
+    else if (camY < 0)
+    {
+        camY = 0;
+        gspeed = 0;
+    };
+}
+
+void add_objects()
+{
+    Teapot x = Teapot(10, 0, 10, 3, { 1,1,0 });
+    x.make();
+
+    Cube c = Cube(50, 0, -20, 5, { 0,0,1 });
+    c.make();
+
+    Sphere s = Sphere(100, 0, -50, 4, { 0,1,0 });
+    s.make();
+}
+
 
 void display()
 {
@@ -63,16 +178,14 @@ void display()
         0, 1, 0
     );
 
-    glColor3f(1, 0.4, 0.2);
+    moveCamera();
 
-    glutSolidTeapot(1.5);
-
-
-    //showInfo();
+    add_objects();
     gravity();
-
     glutSwapBuffers();
+
 }
+
 
 void mouseMotion(int x, int y)
 {
@@ -97,72 +210,15 @@ void mouseMotion(int x, int y)
     glutPostRedisplay();
 }
 
-void Keyboardf(unsigned char key, int xx, int yy)
+void KeyboardDownf(unsigned char key, int xx, int yy)
 {
-    double dirX, dirY, dirZ;
-    computeCamera(dirX, dirY, dirZ);
-
-    double forwardX = dirX;
-    double forwardZ = dirZ;
-
-
-    double rightX = dirZ;
-    double rightZ = -dirX;
-
-    if (key == 'w')
-    {
-        camX += forwardX * speed;
-        camZ += forwardZ * speed;
-    }
-
-    if (key == 's')
-    {
-        camX -= forwardX * speed;
-        camZ -= forwardZ * speed;
-    }
-
-    if (key == 'a')
-    {
-        camX += rightX * speed;
-        camZ += rightZ * speed;
-    }
-
-    if (key == 'd')
-    {
-        camX -= rightX * speed;
-        camZ -= rightZ * speed;
-    }
-
-    if (key == 32) camY = 5;
-
-
-    if (key == 27) exit(0);
-
-    glutPostRedisplay();
+    keys[key] = true;
 }
 
-void showInfo()
+void KeyboardUpf(unsigned char key, int xx, int yy)
 {
-    cout << "----------------------------\n";
-    //cout << "Position = (" << camX << " , " << camY << "," << camZ << ")\n";
-    //cout << "Mouse Position = (" << lastMouseX << " , " << lastMouseY << ")\n";
-    cout << "Angle = (X = " << yaw << ", Y = " << pitch << ")\n";
+    keys[key] = false;
 }
-
-void gravity()
-{
-    gspeed += 0.0005;
-    if (camY > 0)
-    {
-        camY -= gspeed;
-    }
-    else if (camY < 0)
-    {
-        camY = 0;
-        gspeed = 0;
-    };
-}
-
 
 void lightshading()
 {
@@ -171,6 +227,10 @@ void lightshading()
 
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
+
+    glEnable(GL_COLOR_MATERIAL);
+    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+
     glLightfv(GL_LIGHT0, GL_POSITION, light_position);
     glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
 }
@@ -191,18 +251,18 @@ void init()
     glLoadIdentity();
 }
 
-
 int main(int argc, char** argv)
 {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
     glutInitWindowSize(900, 900);
     glutInitWindowPosition(360, 30);
-    glutCreateWindow("MyProject ver 1.0");
+    glutCreateWindow("MyProject ver 1.1");
 
     glutDisplayFunc(display);
     glutPassiveMotionFunc(mouseMotion);
-    glutKeyboardFunc(Keyboardf);
+    glutKeyboardFunc(KeyboardDownf);
+    glutKeyboardUpFunc(KeyboardUpf);
 
     init();
     lightshading();
