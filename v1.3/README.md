@@ -1,7 +1,7 @@
 Added a Figure class
 
-Fixed collision system
+Created and Fixed collision system
 
-Added Bullet class
+Added Bullet class and shooting system(NOT FINISHED)
 
 Seperated the two different FOVs
